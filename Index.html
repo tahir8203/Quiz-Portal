@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LMS Pro | Punjab College</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #64748b;
+            --bg-body: #f1f5f9;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-light: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --sidebar-w: 280px;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* HEADER & SIDEBAR */
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: var(--surface); box-shadow: var(--shadow); z-index: 1000; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .mobile-toggle { font-size: 24px; cursor: pointer; }
+        .mobile-logo { font-weight: 700; color: var(--primary); font-size: 18px; }
+
+        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 25px; height: 100%; transition: transform 0.3s ease; z-index: 1100; }
+        .logo { font-size: 22px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+        .nav-item { padding: 14px 16px; border-radius: 12px; cursor: pointer; color: var(--text-light); display: flex; align-items: center; gap: 14px; margin-bottom: 8px; transition: 0.2s; font-weight: 500; }
+        .nav-item:hover, .nav-item.active { background: #e0e7ff; color: var(--primary); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; backdrop-filter: blur(2px); }
+
+        /* CONTENT */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; scroll-behavior: smooth; }
+        .card { background: var(--surface); padding: 25px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+        .card-title { font-size: 18px; font-weight: 700; margin: 0; }
+
+        /* UTILS */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; }
+        .hidden { display: none !important; }
+        
+        input, select, textarea { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; margin-bottom: 15px; font-family: inherit; font-size: 15px; background: #f8fafc; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+        .btn { padding: 14px 20px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; width: 100%; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: #f1f5f9; color: var(--text-main); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .w-auto { width: auto; }
+
+        /* REVIEW COLORS */
+        .review-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; margin-bottom: 10px; background: #fff; }
+        .review-correct { border-left: 5px solid var(--success); background: #f0fdf4; }
+        .review-wrong { border-left: 5px solid var(--danger); background: #fef2f2; }
+        
+        .opt-btn { background: var(--surface); border: 2px solid #e2e8f0; padding: 16px; border-radius: 12px; text-align: left; width: 100%; margin-bottom: 12px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .opt-btn:hover { border-color: var(--primary); background: #e0e7ff; }
+        .selected-opt { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; }
+
+        /* --- FIXED MODAL SCROLLING --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        
+        /* New Flexbox Layout for Modal to fix scrolling */
+        .modal-box { 
+            background: var(--surface); 
+            width: 95%; max-width: 650px; height: 85vh; /* Fixed height for scroll */
+            display: flex; flex-direction: column; /* Stack header and content */
+            padding: 20px; border-radius: 20px; 
+            animation: slideUp 0.3s ease; 
+        }
+        
+        /* Prevent header from shrinking */
+        .modal-box .card-header { flex-shrink: 0; }
+        
+        /* Make content scrollable */
+        #draft-list-container, #grading-list-view, #review-list, #grading-detail-view {
+            flex-grow: 1; 
+            overflow-y: auto; 
+            min-height: 0; /* Crucial for flex scrolling */
+            padding-right: 5px;
+        }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; top: 0; left: 0; height: 100%; transform: translateX(-100%); width: 280px; }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; }
+            .mobile-header { display: flex; }
+            .main-content { padding: 80px 15px 30px 15px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .logo { display: none; }
+            .btn { padding: 16px; }
+            .w-auto { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-header">
+        <div class="mobile-logo"><i class="fa-solid fa-graduation-cap"></i> LMS PRO</div>
+        <i class="fa-solid fa-bars mobile-toggle" onclick="toggleSidebar()"></i>
+    </div>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo"><i class="fa-solid fa-graduation-cap"></i> LMS PRO</div>
+        
+        <div id="teacher-nav" class="hidden">
+            <div class="nav-item active" onclick="switchTab('quiz')"><i class="fa-solid fa-pen-nib"></i> Quiz Manager</div>
+            <div class="nav-item" onclick="switchTab('assign')"><i class="fa-solid fa-file-lines"></i> Assignments</div>
+            <div class="nav-item" onclick="switchTab('grading')"><i class="fa-solid fa-check-double"></i> Grading</div>
+            <div class="nav-item" onclick="location.reload()" style="color:var(--danger); margin-top:20px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</div>
+        </div>
+
+        <div id="student-nav" class="hidden">
+            <div class="nav-item active" onclick="switchStudentTab('quiz')"><i class="fa-solid fa-laptop-code"></i> Take Exam</div>
+            <div class="nav-item" onclick="switchStudentTab('assign')"><i class="fa-solid fa-briefcase"></i> Assignments</div>
+            <div class="nav-item" onclick="location.reload()" style="color:var(--danger); margin-top:20px;"><i class="fa-solid fa-right-from-bracket"></i> Logout</div>
+        </div>
+
+        <div id="public-nav">
+            <div class="nav-item active" onclick="location.reload()"><i class="fa-solid fa-house"></i> Home</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <div id="main-menu" class="card" style="max-width: 500px; margin: 40px auto; text-align: center;">
+            <div style="width: 70px; height: 70px; background: #e0e7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fa-solid fa-layer-group" style="font-size: 30px; color: var(--primary);"></i>
+            </div>
+            <h2>Welcome Back</h2>
+            <div class="grid-2" style="margin-top: 30px;">
+                <button class="btn btn-primary" onclick="showTeacherLogin()">Teacher</button>
+                <button class="btn btn-secondary" onclick="showStudentLogin()">Student</button>
+            </div>
+        </div>
+
+        <div id="teacher-login-screen" class="hidden card" style="max-width: 400px; margin: 40px auto;">
+            <div class="card-header"><span class="card-title">Instructor Login</span></div>
+            <label>Security PIN</label>
+            <input type="password" id="teacher-pin" placeholder="Enter 8-digit PIN">
+            <button class="btn btn-primary" onclick="verifyTeacher()">Access Dashboard</button>
+        </div>
+
+        <div id="teacher-dashboard" class="hidden">
+            <div class="card" style="border-left: 5px solid var(--primary);">
+                <div class="grid-2">
+                    <div>
+                        <label>Select Class</label>
+                        <select id="teacher-class-select" onchange="refreshDashboard()">
+                            <option value="">-- Choose Class --</option>
+                            <option value="BSCS-V_RG_OS">BSCS-V RG (OS)</option>
+                            <option value="BSCS-V_HG_OS">BSCS-V HG (OS)</option>
+                            <option value="BSCS-V_DG_WEB">BSCS-V DG (Web App)</option>
+                            <option value="BSCS-V_BOYS_WEB">BSCS-V Boys (Web App)</option>
+                            <option value="ADP_AI_DLD">ADP AI (DLD)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Session ID</label>
+                        <select id="control-id" onchange="refreshDashboard()">
+                            <option value="1">ID 1</option>
+                            <option value="2">ID 2</option>
+                            <option value="3">ID 3</option>
+                            <option value="4">ID 4</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-quiz" class="section-view">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Editor</span>
+                            <span class="badge">Draft: <span id="q-count">0</span></span>
+                        </div>
+                        
+                        <label>Type</label>
+                        <select id="q-type-select" onchange="toggleQuestionInputs()">
+                            <option value="mcq">Multiple Choice</option>
+                            <option value="theory">Theory / Subjective</option>
+                        </select>
+
+                        <label>Question</label>
+                        <textarea id="q-text" rows="2" placeholder="Question text..."></textarea>
+                        <input type="file" id="q-image-input" accept="image/*" style="background:white;">
+
+                        <div id="mcq-inputs">
+                            <label>Options <button class="btn btn-secondary w-auto" style="padding:2px 8px; font-size:11px;" onclick="handleSmartPaste()">📋 Paste Options</button></label>
+                            <div class="grid-2">
+                                <input type="text" id="opt1" placeholder="Option 1">
+                                <input type="text" id="opt2" placeholder="Option 2">
+                                <input type="text" id="opt3" placeholder="Option 3">
+                                <input type="text" id="opt4" placeholder="Option 4">
+                            </div>
+                            <label>Correct</label>
+                            <select id="correct-opt">
+                                <option value="">Select Option</option>
+                                <option value="1">Option 1</option>
+                                <option value="2">Option 2</option>
+                                <option value="3">Option 3</option>
+                                <option value="4">Option 4</option>
+                            </select>
+                        </div>
+
+                        <div id="theory-inputs" class="hidden">
+                            <label>Marks</label>
+                            <input type="number" id="theory-marks" placeholder="e.g. 5">
+                        </div>
+
+                        <button class="btn btn-secondary" onclick="addQuestionToDraft()">➕ Add to Draft</button>
+                        
+                        <div style="margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+                            <label>Actions</label>
+                            <div class="grid-4">
+                                <button class="btn btn-warning" onclick="saveDraft()">Save</button>
+                                <button class="btn btn-secondary" onclick="loadDraft()">Load</button>
+                                <button class="btn btn-secondary" onclick="openDraftPreview()">View</button>
+                                <button class="btn btn-danger" onclick="deleteSavedDraft()">Del</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Controls</span></div>
+                        <div style="text-align:center; padding:15px; background:#f8fafc; border-radius:10px; margin-bottom:15px;">
+                            <strong id="status-display" style="color:var(--text-light);">Checking...</strong>
+                        </div>
+                        <label>Timer (Min)</label>
+                        <input type="number" id="quiz-timer-input" placeholder="e.g. 30">
+                        <button class="btn btn-success" onclick="goLive()">🚀 GO LIVE</button>
+                        <button class="btn btn-danger" onclick="stopQuiz()" style="margin-top:10px;">🛑 STOP</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-assign" class="section-view hidden">
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Assignments</span></div>
+                    <div id="assign-status-box" class="hidden" style="background:#dcfce7; color:#166534; padding:10px; border-radius:8px; margin-bottom:15px;">✅ Active</div>
+                    <label>Title</label>
+                    <input type="text" id="assign-title" placeholder="Name">
+                    <label>Link</label>
+                    <input type="text" id="assign-link" placeholder="URL">
+                    <label>Date</label>
+                    <input type="date" id="assign-date">
+                    <div class="grid-2" style="margin-top:15px;">
+                        <button class="btn btn-success" onclick="postAssignment()">Post</button>
+                        <button class="btn btn-danger hidden" id="btn-delete-assign" onclick="deleteAssignment()">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-grading" class="section-view hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Results</span>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-primary w-auto" onclick="openGradingPanel()">Grade</button>
+                            <button class="btn btn-success w-auto" onclick="exportToExcel()">Excel</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary w-auto" onclick="loadResults()" style="margin-bottom:15px;">Refresh</button>
+                    <div class="table-responsive">
+                        <table id="results-table">
+                            <thead><tr><th>Roll</th><th>Name</th><th>Score</th><th>Status</th></tr></thead>
+                            <tbody id="results-body"><tr><td colspan="4" align="center">No Data</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="student-login" class="hidden card" style="max-width: 450px; margin: 40px auto;">
+            <div class="card-header"><span class="card-title">Student Login</span></div>
+            <label>Class</label>
+            <select id="student-class-select">
+                <option value="">-- Choose Class --</option>
+                <option value="BSCS-V_RG_OS">BSCS-V RG (OS)</option>
+                <option value="BSCS-V_HG_OS">BSCS-V HG (OS)</option>
+                <option value="BSCS-V_DG_WEB">BSCS-V DG (Web App)</option>
+                <option value="BSCS-V_BOYS_WEB">BSCS-V Boys (Web App)</option>
+                <option value="ADP_AI_DLD">ADP AI (DLD)</option>
+            </select>
+            <label>ID</label>
+            <select id="student-quiz-id"><option value="1">ID 1</option><option value="2">ID 2</option><option value="3">ID 3</option><option value="4">ID 4</option></select>
+            <div class="grid-2">
+                <div><label>Name</label><input type="text" id="student-name"></div>
+                <div><label>Roll No</label><input type="text" id="student-roll"></div>
+            </div>
+            <button id="start-btn" class="btn btn-primary" onclick="enterStudentDashboard()">Login</button>
+        </div>
+
+        <div id="student-dashboard" class="hidden">
+            <div id="student-quiz-view" class="section-view">
+                <div id="quiz-start-card" class="card">
+                    <h3>Ready?</h3>
+                    <p>Do not switch tabs during the exam.</p>
+                    <button class="btn btn-primary" onclick="startStudentQuiz()">Start Quiz</button>
+                </div>
+
+                <div id="quiz-interface" class="hidden card" style="max-width:800px; margin:0 auto;">
+                    <div class="card-header">
+                        <span id="question-counter" class="badge">Q1</span>
+                        <span id="timer-box" class="hidden" style="color:var(--danger); font-weight:700;">Time: <span id="time-val"></span></span>
+                    </div>
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <h3 id="display-question" style="margin-bottom:15px;">...</h3>
+                        <img id="display-image" class="hidden" style="max-width:100%; max-height:250px; border-radius:10px;">
+                    </div>
+                    <div id="answer-area"></div>
+                    <div id="theory-area" class="hidden"><textarea id="theory-text-input" rows="6" placeholder="Type answer..." oninput="saveTheoryInput()"></textarea></div>
+                    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                        <button class="btn btn-secondary w-auto" id="btn-prev" onclick="prevQuestion()">Prev</button>
+                        <button class="btn btn-primary w-auto" id="btn-next" onclick="nextQuestion()">Next</button>
+                        <button class="btn btn-success w-auto hidden" id="btn-submit" onclick="finishQuiz()">Submit</button>
+                    </div>
+                </div>
+
+                <div id="score-screen" class="hidden">
+                    <div class="card" style="text-align:center; max-width:500px; margin:0 auto;">
+                        <i class="fa-solid fa-circle-check" style="font-size:50px; color:var(--success); margin-bottom:15px;"></i>
+                        <h2>Submitted!</h2>
+                        <p>Status: <strong id="final-status-text"></strong></p>
+                        <div style="background:#f8fafc; padding:15px; border-radius:12px; margin:20px 0; text-align:left;">
+                            <p>MCQ: <span style="float:right; font-weight:bold;" id="mcq-final-score">0</span></p>
+                            <p>Theory: <span style="float:right; font-weight:bold;" id="theory-final-score">Pending</span></p>
+                            <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
+                            <h3>Total: <span style="float:right; color:var(--primary);" id="total-final-score">Pending</span></h3>
+                        </div>
+                        <button class="btn btn-secondary" onclick="toggleReview()" style="margin-bottom:10px;">View Report</button>
+                        <button class="btn btn-primary" onclick="location.reload()">Exit</button>
+                    </div>
+                    <div id="review-container" class="hidden card" style="max-width:800px; margin:20px auto;">
+                        <h3>Quiz Review</h3>
+                        <div id="review-list"></div>
+                        <button class="btn btn-secondary w-auto" onclick="toggleReview()" style="margin-top:10px;">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="student-assign-view" class="section-view hidden">
+                <h3>Assignments</h3>
+                <div id="student-assign-list" style="margin-top:15px;">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="draft-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="card-header"><span class="card-title">Draft Preview</span> <button class="btn btn-secondary w-auto" style="padding:5px 10px;" onclick="closeDraftPreview()">✕</button></div>
+            <div id="draft-list-container"></div>
+        </div>
+    </div>
+
+    <div id="grading-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="card-header"><span class="card-title">Grading</span> <button class="btn btn-secondary w-auto" style="padding:5px 10px;" onclick="closeGradingPanel()">✕</button></div>
+            <div id="grading-list-view"><p>Select student:</p><div id="grading-student-list"></div></div>
+            <div id="grading-detail-view" class="hidden">
+                <button class="btn btn-secondary w-auto" onclick="backToGradingList()" style="margin-bottom:10px;">Back</button>
+                <h3 id="grading-student-name">Student</h3>
+                <div id="grading-questions-container"></div>
+                <button class="btn btn-success" onclick="saveStudentGrade()">Save Grade</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+    <script>
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.querySelector('.sidebar-overlay').classList.toggle('active'); }
+        document.querySelectorAll('.nav-item').forEach(item => { item.addEventListener('click', () => { if(window.innerWidth <= 768) toggleSidebar(); }); });
+    </script>
+</body>
+</html>
