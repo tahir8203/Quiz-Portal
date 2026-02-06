@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isTeacher() {
+      return isSignedIn() && exists(/databases/(default)/documents/teachers/$(request.auth.uid));
+    }
+    function isStudent() {
+      return isSignedIn() && exists(/databases/(default)/documents/students/$(request.auth.uid));
+    }
+
+    match /submissions/{classKey}/{semesterKey}/{assignmentFolder}/{fileName} {
+      allow read: if isTeacher() || isStudent();
+      allow write: if isStudent() && request.resource.size < 10 * 1024 * 1024;
+      allow delete: if isTeacher();
+    }
+
+    match /quiz-images/{classKey}/{semesterKey}/{quizFolder}/{fileName} {
+      allow read: if isTeacher() || isStudent();
+      allow write: if isTeacher();
+      allow delete: if isTeacher();
+    }
+  }
+}
