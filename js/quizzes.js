@@ -359,7 +359,6 @@ async function startStudentQuiz() {
     return;
   }
 
-  const teacherUid = state.studentProfile.teacherUid || "";
   const quizDocKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   const quizDoc = await db.collection("quizzes").doc(quizDocKey).get();
   if (!quizDoc.exists || quizDoc.data().status !== "published" || quizDoc.data().archived) {
