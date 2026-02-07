@@ -2,6 +2,35 @@ import { db } from "./firebase.js";
 import { state } from "./state.js";
 import { qs, setOptions, safeText } from "./utils.js";
 
+export async function loadStudentClassSemesterOptions() {
+  const classSelect = qs("#student-class");
+  const semesterSelect = qs("#student-semester");
+
+  const snap = await db.collection("enrollments").get();
+  if (snap.empty) {
+    setOptions(classSelect, [], "name");
+    setOptions(semesterSelect, [], "name");
+    return;
+  }
+
+  const classMap = new Map();
+  const semesterMap = new Map();
+  snap.forEach((doc) => {
+    const data = doc.data();
+    if (data.classKey) {
+      classMap.set(data.classKey, data.className || data.classKey);
+    }
+    if (data.semesterKey) {
+      semesterMap.set(data.semesterKey, data.semesterName || data.semesterKey);
+    }
+  });
+
+  const classOptions = Array.from(classMap.entries()).map(([key, name]) => ({ key, name }));
+  const semesterOptions = Array.from(semesterMap.entries()).map(([key, name]) => ({ key, name }));
+  setOptions(classSelect, classOptions, "name");
+  setOptions(semesterSelect, semesterOptions, "name");
+}
+
 export async function loadStudentEnrollmentOptions() {
   const classKey = qs("#student-class").value;
   const semesterKey = qs("#student-semester").value;
@@ -41,13 +70,13 @@ export async function loadStudentEnrollmentOptions() {
   setOptions(nameSelect, nameOptions, "name");
   setOptions(rollSelect, rollOptions, "name");
 
-  nameSelect.addEventListener("change", () => {
+  nameSelect.onchange = () => {
     const selected = students.find((s) => s.name === nameSelect.value);
     if (selected) rollSelect.value = selected.roll;
-  });
+  };
 
-  rollSelect.addEventListener("change", () => {
+  rollSelect.onchange = () => {
     const selected = students.find((s) => s.roll === rollSelect.value);
     if (selected) nameSelect.value = selected.name;
-  });
+  };
 }

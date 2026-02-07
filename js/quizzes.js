@@ -170,8 +170,10 @@ async function saveDraft(silent = false) {
     return;
   }
 
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   await db.collection("quizzes").doc(docKey).set({
+    teacherUid,
     classKey,
     semesterKey,
     quizNumber: Number(quizNumber),
@@ -196,7 +198,8 @@ async function loadDraft() {
     alert("Select class, semester, and quiz number");
     return;
   }
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   const doc = await db.collection("quizzes").doc(docKey).get();
   if (!doc.exists) {
     alert("No draft found");
@@ -218,7 +221,8 @@ async function deleteDraft() {
     alert("Select class, semester, and quiz number");
     return;
   }
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   await db.collection("quizzes").doc(docKey).delete();
   draftQuestions = [];
   editIndex = null;
@@ -239,7 +243,8 @@ async function publishQuiz() {
     alert("Add questions first");
     return;
   }
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   await db.collection("quizzes").doc(docKey).set({
     status: "published",
     publishedAt: serverTimestamp(),
@@ -345,7 +350,8 @@ async function startStudentQuiz() {
 
   const classKey = state.studentProfile.classKey;
   const semesterKey = state.studentProfile.semesterKey;
-  const attemptKey = makeAttemptKey(classKey, semesterKey, quizNumber, state.studentProfile.roll);
+  const teacherUid = state.studentProfile.teacherUid || "";
+  const attemptKey = makeAttemptKey(teacherUid, classKey, semesterKey, quizNumber, state.studentProfile.roll);
   progressKey = attemptKey;
   const attemptDoc = await db.collection("quizAttempts").doc(attemptKey).get();
   if (attemptDoc.exists) {
@@ -353,7 +359,8 @@ async function startStudentQuiz() {
     return;
   }
 
-  const quizDocKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.studentProfile.teacherUid || "";
+  const quizDocKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   const quizDoc = await db.collection("quizzes").doc(quizDocKey).get();
   if (!quizDoc.exists || quizDoc.data().status !== "published" || quizDoc.data().archived) {
     alert("Quiz not available");
@@ -385,7 +392,8 @@ async function archiveQuiz() {
   const semesterKey = state.currentSemesterKey;
   const quizNumber = quizNumberSelect.value;
   if (!classKey || !semesterKey || !quizNumber) return;
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   await db.collection("quizzes").doc(docKey).set({ archived: true, archivedAt: serverTimestamp() }, { merge: true });
   loadArchivedQuizzes();
 }
@@ -395,7 +403,8 @@ async function restoreQuiz() {
   const semesterKey = state.currentSemesterKey;
   const quizNumber = quizNumberSelect.value;
   if (!classKey || !semesterKey || !quizNumber) return;
-  const docKey = makeQuizKey(classKey, semesterKey, quizNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeQuizKey(teacherUid, classKey, semesterKey, quizNumber);
   await db.collection("quizzes").doc(docKey).set({ archived: false, restoredAt: serverTimestamp() }, { merge: true });
   loadArchivedQuizzes();
 }
@@ -409,7 +418,9 @@ export async function loadArchivedQuizzes() {
     list.textContent = "Select class and semester.";
     return;
   }
+  const teacherUid = state.teacherProfile?.uid || "";
   const snap = await db.collection("quizzes")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .where("archived", "==", true)
@@ -537,7 +548,8 @@ async function submitQuiz() {
   const classKey = state.studentProfile.classKey;
   const semesterKey = state.studentProfile.semesterKey;
   const quizNumber = studentQuizSelect.value;
-  const attemptKey = makeAttemptKey(classKey, semesterKey, quizNumber, state.studentProfile.roll);
+  const teacherUid = state.studentProfile.teacherUid || "";
+  const attemptKey = makeAttemptKey(teacherUid, classKey, semesterKey, quizNumber, state.studentProfile.roll);
 
   let score = 0;
   let total = 0;
@@ -555,6 +567,7 @@ async function submitQuiz() {
   });
 
   await db.collection("quizAttempts").doc(attemptKey).set({
+    teacherUid,
     classKey,
     semesterKey,
     quizNumber: Number(quizNumber),
@@ -640,12 +653,12 @@ function renderReview(questions, answersList) {
   });
 }
 
-function makeQuizKey(classKey, semesterKey, quizNumber) {
-  return `${classKey}_${semesterKey}_quiz_${quizNumber}`;
+function makeQuizKey(teacherUid, classKey, semesterKey, quizNumber) {
+  return `${teacherUid}_${classKey}_${semesterKey}_quiz_${quizNumber}`;
 }
 
-function makeAttemptKey(classKey, semesterKey, quizNumber, roll) {
-  return `${classKey}_${semesterKey}_quiz_${quizNumber}_roll_${roll}`;
+function makeAttemptKey(teacherUid, classKey, semesterKey, quizNumber, roll) {
+  return `${teacherUid}_${classKey}_${semesterKey}_quiz_${quizNumber}_roll_${roll}`;
 }
 
 function fileToBase64(file) {

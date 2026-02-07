@@ -25,7 +25,9 @@ export async function loadResults() {
   }
 
   const quizFilter = qs("#results-quiz-filter").value;
+  const teacherUid = state.teacherProfile?.uid || "";
   let query = db.collection("quizAttempts")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey);
   if (quizFilter) {
@@ -65,7 +67,9 @@ async function exportResults() {
   const classKey = state.currentClassKey;
   const semesterKey = state.currentSemesterKey;
   const quizFilter = qs("#results-quiz-filter").value;
+  const teacherUid = state.teacherProfile?.uid || "";
   let query = db.collection("quizAttempts")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey);
   if (quizFilter) {

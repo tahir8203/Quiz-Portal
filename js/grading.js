@@ -22,7 +22,9 @@ export async function loadPendingGrades() {
     return;
   }
 
+  const teacherUid = state.teacherProfile?.uid || "";
   const snap = await db.collection("quizAttempts")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .where("graded", "==", false)

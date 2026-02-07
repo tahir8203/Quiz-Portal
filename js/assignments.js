@@ -34,8 +34,10 @@ async function saveAssignment() {
     return;
   }
 
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   await db.collection("assignments").doc(docKey).set({
+    teacherUid,
     classKey,
     semesterKey,
     assignmentNumber: Number(assignmentNumber),
@@ -59,7 +61,8 @@ async function loadAssignment() {
   const assignmentNumber = assignmentSelectTeacher.value;
   if (!classKey || !semesterKey || !assignmentNumber) return;
 
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   const doc = await db.collection("assignments").doc(docKey).get();
   if (!doc.exists) {
     qs("#assignment-title").value = "";
@@ -77,14 +80,15 @@ async function loadAssignment() {
   qs("#assignment-title").value = data.title || "";
   qs("#assignment-due").value = data.dueDate || "";
   qs("#assignment-notes").value = data.notes || "";
-  await loadSubmissions(classKey, semesterKey, assignmentNumber);
+  await loadSubmissions(teacherUid, classKey, semesterKey, assignmentNumber);
   loadArchivedAssignments();
 }
 
-async function loadSubmissions(classKey, semesterKey, assignmentNumber) {
+async function loadSubmissions(teacherUid, classKey, semesterKey, assignmentNumber) {
   const list = qs("#submission-list");
   list.innerHTML = "Loading...";
   const snap = await db.collection("submissions")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .where("assignmentNumber", "==", Number(assignmentNumber))
@@ -114,8 +118,10 @@ async function deleteAssignment() {
   const assignmentNumber = assignmentSelectTeacher.value;
   if (!classKey || !semesterKey || !assignmentNumber) return;
 
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   const submissionsSnap = await db.collection("submissions")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .where("assignmentNumber", "==", Number(assignmentNumber))
@@ -147,7 +153,8 @@ async function loadStudentAssignment() {
   details.innerHTML = "";
   if (!assignmentNumber) return;
 
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.studentProfile.teacherUid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   const doc = await db.collection("assignments").doc(docKey).get();
   if (!doc.exists) {
     details.textContent = "No assignment published.";
@@ -170,7 +177,7 @@ async function loadStudentAssignment() {
   `;
   details.appendChild(row);
 
-  const submissionKey = `${classKey}_${semesterKey}_assignment_${assignmentNumber}_roll_${state.studentProfile.roll}`;
+  const submissionKey = `${teacherUid}_${classKey}_${semesterKey}_assignment_${assignmentNumber}_roll_${state.studentProfile.roll}`;
   const submissionDoc = await db.collection("submissions").doc(submissionKey).get();
   if (submissionDoc.exists) {
     const submission = submissionDoc.data();
@@ -191,7 +198,8 @@ async function archiveAssignment() {
   const semesterKey = state.currentSemesterKey;
   const assignmentNumber = assignmentSelectTeacher.value;
   if (!classKey || !semesterKey || !assignmentNumber) return;
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   await db.collection("assignments").doc(docKey).set({ archived: true, archivedAt: serverTimestamp() }, { merge: true });
   loadArchivedAssignments();
 }
@@ -201,7 +209,8 @@ async function restoreAssignment() {
   const semesterKey = state.currentSemesterKey;
   const assignmentNumber = assignmentSelectTeacher.value;
   if (!classKey || !semesterKey || !assignmentNumber) return;
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.teacherProfile?.uid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   await db.collection("assignments").doc(docKey).set({ archived: false, restoredAt: serverTimestamp() }, { merge: true });
   loadArchivedAssignments();
 }
@@ -215,7 +224,9 @@ export async function loadArchivedAssignments() {
     list.textContent = "Select class and semester.";
     return;
   }
+  const teacherUid = state.teacherProfile?.uid || "";
   const snap = await db.collection("assignments")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .where("archived", "==", true)
@@ -257,7 +268,8 @@ async function uploadSubmission() {
 
   const classKey = state.studentProfile.classKey;
   const semesterKey = state.studentProfile.semesterKey;
-  const docKey = makeAssignmentKey(classKey, semesterKey, assignmentNumber);
+  const teacherUid = state.studentProfile.teacherUid || "";
+  const docKey = makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber);
   const assignmentDoc = await db.collection("assignments").doc(docKey).get();
   if (!assignmentDoc.exists) {
     alert("Assignment not found");
@@ -278,10 +290,10 @@ async function uploadSubmission() {
     return;
   }
 
-  const storagePath = `submissions/${classKey}/${semesterKey}/assignment-${assignmentNumber}/${state.studentProfile.roll}-${Date.now()}-${file.name}`;
+  const storagePath = `submissions/${teacherUid}/${classKey}/${semesterKey}/assignment-${assignmentNumber}/${state.studentProfile.roll}-${Date.now()}-${file.name}`;
   status.textContent = "Uploading...";
 
-  const submissionKey = `${classKey}_${semesterKey}_assignment_${assignmentNumber}_roll_${state.studentProfile.roll}`;
+  const submissionKey = `${teacherUid}_${classKey}_${semesterKey}_assignment_${assignmentNumber}_roll_${state.studentProfile.roll}`;
   const existingSubmission = await db.collection("submissions").doc(submissionKey).get();
   if (existingSubmission.exists && existingSubmission.data().storagePath) {
     try {
@@ -296,6 +308,7 @@ async function uploadSubmission() {
   const downloadUrl = await ref.getDownloadURL();
 
   await db.collection("submissions").doc(submissionKey).set({
+    teacherUid,
     classKey,
     semesterKey,
     assignmentNumber: Number(assignmentNumber),
@@ -311,6 +324,6 @@ async function uploadSubmission() {
   fileInput.value = "";
 }
 
-function makeAssignmentKey(classKey, semesterKey, assignmentNumber) {
-  return `${classKey}_${semesterKey}_assignment_${assignmentNumber}`;
+function makeAssignmentKey(teacherUid, classKey, semesterKey, assignmentNumber) {
+  return `${teacherUid}_${classKey}_${semesterKey}_assignment_${assignmentNumber}`;
 }

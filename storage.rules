@@ -11,7 +11,7 @@ service firebase.storage {
       return isSignedIn() && exists(/databases/(default)/documents/students/$(request.auth.uid));
     }
 
-    match /submissions/{classKey}/{semesterKey}/{assignmentFolder}/{fileName} {
+    match /submissions/{teacherUid}/{classKey}/{semesterKey}/{assignmentFolder}/{fileName} {
       allow read: if isTeacher() || isStudent();
       allow write: if isStudent() && request.resource.size < 10 * 1024 * 1024;
       allow delete: if isTeacher();

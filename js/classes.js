@@ -15,11 +15,23 @@ export function bindClassHandlers() {
 }
 
 export async function loadClassSemesterOptions() {
+  const isAdmin = state.teacherProfile?.role === "admin";
+  let classesQuery = db.collection("classes").where("archived", "==", false);
+  let semestersQuery = db.collection("semesters").where("archived", "==", false);
+  let archivedClassesQuery = db.collection("classes").where("archived", "==", true);
+  let archivedSemestersQuery = db.collection("semesters").where("archived", "==", true);
+  if (!isAdmin && state.teacherProfile?.uid) {
+    classesQuery = classesQuery.where("teacherUid", "==", state.teacherProfile.uid);
+    semestersQuery = semestersQuery.where("teacherUid", "==", state.teacherProfile.uid);
+    archivedClassesQuery = archivedClassesQuery.where("teacherUid", "==", state.teacherProfile.uid);
+    archivedSemestersQuery = archivedSemestersQuery.where("teacherUid", "==", state.teacherProfile.uid);
+  }
+
   const [classesSnap, semestersSnap, archivedClassesSnap, archivedSemestersSnap] = await Promise.all([
-    db.collection("classes").where("archived", "==", false).get(),
-    db.collection("semesters").where("archived", "==", false).get(),
-    db.collection("classes").where("archived", "==", true).get(),
-    db.collection("semesters").where("archived", "==", true).get()
+    classesQuery.get(),
+    semestersQuery.get(),
+    archivedClassesQuery.get(),
+    archivedSemestersQuery.get()
   ]);
 
   state.classList = classesSnap.docs.map((doc) => ({ key: doc.id, ...doc.data() }));
@@ -41,10 +53,11 @@ export async function loadClassSemesterOptions() {
 async function addClass() {
   const name = qs("#class-name").value.trim();
   if (!name) return;
-  const key = makeKey(name);
+  const key = makeKeyWithTeacher(name);
   await db.collection("classes").doc(key).set({
     name,
     archived: false,
+    teacherUid: state.teacherProfile?.uid || "",
     createdAt: serverTimestamp()
   });
   qs("#class-name").value = "";
@@ -54,10 +67,11 @@ async function addClass() {
 async function addSemester() {
   const name = qs("#semester-name").value.trim();
   if (!name) return;
-  const key = makeKey(name);
+  const key = makeKeyWithTeacher(name);
   await db.collection("semesters").doc(key).set({
     name,
     archived: false,
+    teacherUid: state.teacherProfile?.uid || "",
     createdAt: serverTimestamp()
   });
   qs("#semester-name").value = "";
@@ -178,6 +192,8 @@ function renderArchivedSemesterList() {
   });
 }
 
-function makeKey(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+function makeKeyWithTeacher(name) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const teacherUid = state.teacherProfile?.uid || "teacher";
+  return `${teacherUid}_${base}`;
 }

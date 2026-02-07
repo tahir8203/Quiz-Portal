@@ -9,7 +9,7 @@ import { bindGradingHandlers, loadPendingGrades } from "./grading.js";
 import { showAdminTabIfAllowed, loadPendingTeachers } from "./admin.js";
 import { bindStudentResultsHandlers, loadStudentResults } from "./studentResults.js";
 import { ensureXlsx } from "./xlsxLoader.js";
-import { loadStudentEnrollmentOptions } from "./studentEnrollment.js";
+import { loadStudentEnrollmentOptions, loadStudentClassSemesterOptions } from "./studentEnrollment.js";
 import { qs } from "./utils.js";
 import { state } from "./state.js";
 
@@ -53,10 +53,14 @@ qs("#btn-open-teacher").addEventListener("click", () => {
 qs("#btn-open-student").addEventListener("click", () => {
   showStudentLogin();
   setTopbarButtons({ showTeacherSwitch: false, showStudentSwitch: false, showSignOut: false });
+  loadStudentClassSemesterOptions();
 });
 
 qs("#btn-to-teacher-login").addEventListener("click", showTeacherLogin);
-qs("#btn-to-student-login").addEventListener("click", showStudentLogin);
+qs("#btn-to-student-login").addEventListener("click", () => {
+  showStudentLogin();
+  loadStudentClassSemesterOptions();
+});
 qs("#admin-tab-btn").addEventListener("click", loadPendingTeachers);
 
 qs("#student-class").addEventListener("change", loadStudentEnrollmentOptions);
@@ -95,9 +99,17 @@ document.addEventListener("student-results-updated", () => {
 document.addEventListener("teacher-profile-ready", () => {
   showAdminTabIfAllowed();
   loadPendingTeachers();
+  loadClassSemesterOptions().then(() => {
+    loadEnrollmentList();
+    loadPendingGrades();
+    loadResults();
+    loadArchivedQuizzes();
+    loadArchivedAssignments();
+  });
 });
 
 showPublicScreen();
+loadStudentClassSemesterOptions();
 
 function switchStudentTab(tabId) {
   const studentSection = qs("#student-dashboard");

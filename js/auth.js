@@ -31,7 +31,7 @@ export function initAuthListener() {
         return;
       }
       state.role = "teacher";
-      state.teacherProfile = teacherData;
+      state.teacherProfile = { uid: user.uid, ...teacherData };
       document.dispatchEvent(new CustomEvent("teacher-profile-ready", { detail: teacherData }));
       showTeacherDashboard();
       setTopbarButtons({ showTeacherSwitch: true, showStudentSwitch: true, showSignOut: true });
@@ -124,6 +124,7 @@ async function studentLogin() {
       roll,
       classKey,
       semesterKey,
+      teacherUid: enrollment.teacherUid || "",
       enrollmentKey: enrollmentSnap.docs[0].id,
       createdAt: serverTimestamp()
     });

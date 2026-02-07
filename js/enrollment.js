@@ -21,10 +21,12 @@ export async function loadEnrollmentList() {
     list.textContent = "Select class and semester.";
     return;
   }
-  const snap = await db.collection("enrollments")
+  const teacherUid = state.teacherProfile?.uid || "";
+  let query = db.collection("enrollments")
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
-    .get();
+    .where("teacherUid", "==", teacherUid);
+  const snap = await query.get();
 
   if (snap.empty) {
     list.textContent = "No enrolled students.";
@@ -106,10 +108,12 @@ async function uploadEnrollment() {
 
   const classRef = db.collection("classes").doc(classKey);
   const semesterRef = db.collection("semesters").doc(semesterKey);
-  batch.set(classRef, { name: className, archived: false, createdAt: serverTimestamp() }, { merge: true });
-  batch.set(semesterRef, { name: semesterName, archived: false, createdAt: serverTimestamp() }, { merge: true });
+  batch.set(classRef, { name: className, archived: false, teacherUid: state.teacherProfile?.uid || "", createdAt: serverTimestamp() }, { merge: true });
+  batch.set(semesterRef, { name: semesterName, archived: false, teacherUid: state.teacherProfile?.uid || "", createdAt: serverTimestamp() }, { merge: true });
 
+  const teacherUid = state.teacherProfile?.uid || "";
   const existing = await db.collection("enrollments")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", classKey)
     .where("semesterKey", "==", semesterKey)
     .get();
@@ -125,7 +129,8 @@ async function uploadEnrollment() {
       return;
     }
 
-    const docKey = `${classKey}_${semesterKey}_roll_${roll}`;
+    const teacherUid = state.teacherProfile?.uid || "";
+    const docKey = `${teacherUid}_${classKey}_${semesterKey}_roll_${roll}`;
 
     const ref = db.collection("enrollments").doc(docKey);
     batch.set(ref, {
@@ -135,6 +140,7 @@ async function uploadEnrollment() {
       semesterKey,
       className,
       semesterName,
+      teacherUid,
       createdAt: serverTimestamp()
     }, { merge: true });
     inserted += 1;
@@ -232,7 +238,9 @@ async function handlePreview() {
     previewRows.push({ name, roll });
   });
 
+  const teacherUid = state.teacherProfile?.uid || "";
   const existing = await db.collection("enrollments")
+    .where("teacherUid", "==", teacherUid)
     .where("classKey", "==", state.currentClassKey)
     .where("semesterKey", "==", state.currentSemesterKey)
     .get();
